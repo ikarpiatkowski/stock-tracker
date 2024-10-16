@@ -1,8 +1,9 @@
 {
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "tailwindcss:build": "deno run -A --watch npm:tailwindcss -i ./src/input.css -o ./src/output.css --watch",
+    "dev": "deno task tailwindcss:build & deno run -A --watch ./src/server.tsx"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@1"
+    "tailwindcss": "npm:tailwindcss@^3.4.14"
   }
 }
