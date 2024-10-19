@@ -12,7 +12,6 @@ export const client = new Client({
 
 await client.connect();
 
-// Create the "stocks" table if it doesn't exist
 await client.queryObject`
     CREATE TABLE IF NOT EXISTS stocks (
       id SERIAL PRIMARY KEY,
