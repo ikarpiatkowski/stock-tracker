@@ -1,5 +1,3 @@
-/** @jsx h */
-import { h } from "preact";
 import type { Stock } from "../lib/types.ts";
 import { Navbar } from "../components/Navbar.tsx";
 import { StockTable } from "../components/StockTable.tsx";

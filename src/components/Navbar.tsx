@@ -1,6 +1,3 @@
-/** @jsx h */
-import { h } from "preact";
-
 export const Navbar = ({ balance }: { balance: number }) => {
   return (
     <nav class="fixed top-0 left-0 w-full p-4 backdrop-blur-[6px] z-10 flex items-center">

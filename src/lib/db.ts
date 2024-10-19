@@ -1,4 +1,4 @@
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "postgres";
 import type { Stock } from "./types.ts";
 
 // Initialize PostgreSQL client

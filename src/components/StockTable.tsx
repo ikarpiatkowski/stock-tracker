@@ -1,5 +1,3 @@
-/** @jsx h */
-import { h } from "preact";
 import type { Stock } from "../lib/types.ts";
 export const StockTable = ({ stocks }: { stocks: Stock[] }) => (
   <div class="container mx-auto p-4">

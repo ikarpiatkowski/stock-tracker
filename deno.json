@@ -5,7 +5,14 @@
   },
   "imports": {
     "tailwindcss": "npm:tailwindcss@^3.4.14",
-    "preact": "https://esm.sh/preact@10.23.2",
-    "preact-render-to-string": "https://esm.sh/preact-render-to-string@5.2.4"
+    "preact": "npm:preact",
+    "preact-render-to-string": "https://esm.sh/preact-render-to-string@5.2.4",
+    "postgres": "https://deno.land/x/postgres/mod.ts",
+    "@std/path": "jsr:@std/path@^0.224.0",
+    "xlsx": "https://esm.sh/xlsx"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   }
 }

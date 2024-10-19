@@ -1,5 +1,5 @@
-import { resolve } from "https://deno.land/std@0.214.0/path/mod.ts";
-import * as xlsx from "https://esm.sh/xlsx";
+import { resolve } from "@std/path";
+import * as xlsx from "xlsx";
 
 export async function parseXLSX(
   filePath: string

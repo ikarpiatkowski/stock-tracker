@@ -1,5 +1,3 @@
-/** @jsx h */
-import { h } from "preact";
 import render from "preact-render-to-string";
 import { serveCSS, serveStaticFile, serveXLSXData } from "./lib/serve.ts";
 import { parseXLSX } from "./lib/xlsx.ts";

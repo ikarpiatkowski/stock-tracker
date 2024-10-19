@@ -1,4 +1,4 @@
-import { extname } from "https://deno.land/std@0.214.0/path/mod.ts";
+import { extname } from "@std/path";
 
 export function getMimeType(path: string): string {
   const ext = extname(path).toLowerCase();
