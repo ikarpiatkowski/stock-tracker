@@ -4,6 +4,8 @@
     "dev": "deno task tailwindcss:build & deno run -A --watch ./src/server.tsx"
   },
   "imports": {
-    "tailwindcss": "npm:tailwindcss@^3.4.14"
+    "tailwindcss": "npm:tailwindcss@^3.4.14",
+    "preact": "https://esm.sh/preact@10.23.2",
+    "preact-render-to-string": "https://esm.sh/preact-render-to-string@5.2.4"
   }
 }
