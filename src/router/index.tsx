@@ -2,6 +2,20 @@ import type { Stock } from "../lib/types.ts";
 import { Navbar } from "../components/Navbar.tsx";
 import { StockTable } from "../components/StockTable.tsx";
 import { Table } from "../components/Table.tsx";
+import { DatePickerDemo } from "@/components/DatePicker.tsx";
+import { restClient } from "@polygon.io/client-js";
+import { Button } from "@/components/Button.tsx";
+import { Input } from "@/components/Input.tsx";
+const rest = restClient(Deno.env.get("POLY_API_KEY"));
+
+rest.stocks
+  .aggregates("AAPL", 1, "day", "2023-01-01", "2023-04-14")
+  .then((data) => {
+    console.log(data);
+  })
+  .catch((e) => {
+    console.error("An error happened:", e);
+  });
 
 export const Home = ({
   stocks,
@@ -25,6 +39,7 @@ export const Home = ({
       .pop() || 0;
 
   const sum = parseFloat((lastZyskBrutto + lastZyskBruttoEu * 4.5).toFixed(2));
+
   return (
     <html lang="en">
       <head>
@@ -49,6 +64,13 @@ export const Home = ({
             </div>
             <div class="pt-8">
               <Table openPositions={xlsxData.openPositionsData} />
+            </div>
+            <div class="pt-8">
+              <h2 class="text-2xl font-bold">Profits Chart</h2>
+              {/* <DatePickerDemo /> */}
+              {/* <Button /> */}
+              <Button variant="rainbow">Rainbow</Button>
+              <Input type="text" />
             </div>
           </div>
         </div>

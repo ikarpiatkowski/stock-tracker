@@ -4,3 +4,4 @@ src/output.css
 .env
 src/public/data.xlsx
 src/public/dataEu.xlsx
+node_modules
