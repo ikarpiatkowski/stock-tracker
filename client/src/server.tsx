@@ -1,8 +1,8 @@
 import render from "preact-render-to-string";
 import { serveCSS, serveStaticFile, serveXLSXData, test } from "./lib/serve.ts";
-import { parseXLSX } from "@/lib/xlsx.ts";
-import { fetchStockData } from "@/lib/db.ts";
-import { Home } from "@/router/index.tsx";
+import { parseXLSX } from "./lib/xlsx.ts";
+import { fetchStockData } from "./lib/db.ts";
+import { Home } from "./router/index.tsx";
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
@@ -62,7 +62,7 @@ routerOak.get("/", (ctx) => {
 });
 
 const app = new Application();
-const port = 8080;
+const port = 6969;
 
 app.use(routerOak.routes());
 app.use(routerOak.allowedMethods());
