@@ -1,8 +1,10 @@
 import render from "preact-render-to-string";
-import { serveCSS, serveStaticFile, serveXLSXData } from "./lib/serve.ts";
-import { parseXLSX } from "./lib/xlsx.ts";
-import { fetchStockData } from "./lib/db.ts";
-import { Home } from "./router/index.tsx";
+import { serveCSS, serveStaticFile, serveXLSXData, test } from "./lib/serve.ts";
+import { parseXLSX } from "@/lib/xlsx.ts";
+import { fetchStockData } from "@/lib/db.ts";
+import { Home } from "@/router/index.tsx";
+import { Application } from "jsr:@oak/oak/application";
+import { Router } from "jsr:@oak/oak/router";
 
 async function handleRequest(): Promise<Response> {
   try {
@@ -39,8 +41,33 @@ async function router(req: Request): Promise<Response> {
     return await serveXLSXData();
   }
 
+  if (pathname === "/test") {
+    return await test();
+  }
+
   // Default to serving HTML
   return await handleRequest();
 }
+
+const routerOak = new Router();
+routerOak.get("/", (ctx) => {
+  ctx.response.body = `<!DOCTYPE html>
+    <html>
+      <head><title>Hello oak!</title><head>
+      <body>
+        <h1>Hello oak!</h1>
+      </body>
+    </html>
+  `;
+});
+
+const app = new Application();
+const port = 8080;
+
+app.use(routerOak.routes());
+app.use(routerOak.allowedMethods());
+console.log(`Server running on http://localhost:${port}`);
+
+app.listen({ port: port });
 
 Deno.serve(router);

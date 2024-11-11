@@ -37,3 +37,14 @@ export async function serveCSS(): Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 }
+
+export async function test(): Promise<Response> {
+  try {
+    return new Response("Hello test", {
+      headers: { "content-type": "text" },
+    });
+  } catch (error) {
+    console.error("Error serving XLSX data:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
+}
