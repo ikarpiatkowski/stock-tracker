@@ -1,9 +1,12 @@
-import { parseXLSX } from "./xlsx.ts";
 import { getMimeType } from "./mime.ts";
 
 export async function serveXLSXData(): Promise<Response> {
   try {
-    const jsonData = await parseXLSX("/src/public/data.xlsx");
+    const response = await fetch("http://localhost:8080/api/stocks");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data: ${response.statusText}`);
+    }
+    const jsonData = await response.json();
     return new Response(JSON.stringify(jsonData), {
       headers: { "content-type": "application/json" },
     });
@@ -35,16 +38,5 @@ export async function serveCSS(): Promise<Response> {
   } catch (error) {
     console.error("Error serving CSS:", error);
     return new Response("Not Found", { status: 404 });
-  }
-}
-
-export async function test(): Promise<Response> {
-  try {
-    return new Response("Hello test", {
-      headers: { "content-type": "text" },
-    });
-  } catch (error) {
-    console.error("Error serving XLSX data:", error);
-    return new Response("Internal Server Error", { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-export const Navbar = ({ balance }: { balance: number }) => {
+export const Navbar = () => {
   return (
     <nav class="fixed top-0 left-0 w-full p-4 backdrop-blur-[6px] z-10 flex items-center">
       <div class="flex w-full justify-between items-center">
@@ -7,7 +7,7 @@ export const Navbar = ({ balance }: { balance: number }) => {
           <h1 class="text-xl font-bold">Stock Tracker</h1>
         </div>
         <div class="absolute left-1/2 transform -translate-x-1/2">
-          <p class="font-bold">Profits: {balance} PLN</p>
+          <p class="font-bold">Profits: 6657 PLN</p>
         </div>
         <div>
           <svg

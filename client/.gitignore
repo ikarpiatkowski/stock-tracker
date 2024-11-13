@@ -1,7 +1,0 @@
-.vscode
-deno.lock
-src/output.css
-.env
-src/public/data.xlsx
-src/public/dataEu.xlsx
-node_modules

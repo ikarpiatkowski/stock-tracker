@@ -1,78 +1,73 @@
-import type { Stock } from "../lib/types.ts";
 import { Navbar } from "../components/Navbar.tsx";
-import { StockTable } from "../components/StockTable.tsx";
-import { Table } from "../components/Table.tsx";
-import { DatePickerDemo } from "@/components/DatePicker.tsx";
-// import { restClient } from "@polygon.io/client-js";
 import { Button } from "@/components/Button.tsx";
 import { Input } from "@/components/Input.tsx";
-// const rest = restClient(Deno.env.get("POLY_API_KEY"));
 
-export const Home = ({
-  stocks,
-  xlsxData,
-  xlsxDataEu,
-}: {
-  stocks: Stock[];
-  xlsxData: { stocksData: any[]; openPositionsData: any[] };
-  xlsxDataEu: { stocksData: any[]; openPositionsData: any[] };
-}) => {
-  const lastZyskBrutto =
-    xlsxData.openPositionsData
-      .map((position) => parseFloat(position.__EMPTY_14))
-      .filter((value) => !isNaN(value))
-      .pop() || 0;
+interface Stock {
+  symbol: string;
+  time: string;
+  price: string;
+}
 
-  const lastZyskBruttoEu =
-    xlsxDataEu.openPositionsData
-      .map((position) => parseFloat(position.__EMPTY_14))
-      .filter((value) => !isNaN(value))
-      .pop() || 0;
+export const Home = async () => {
+  try {
+    const response = await fetch("http://localhost:8080/api/stocks");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stocks: ${response.statusText}`);
+    }
+    const stocks: Stock[] = await response.json();
 
-  const sum = parseFloat((lastZyskBrutto + lastZyskBruttoEu * 4.5).toFixed(2));
+    return (
+      <html lang="en">
+        <head>
+          <meta charSet="UTF-8" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
+          <title>Stock Data</title>
+          <link href="/output.css" rel="stylesheet" />
+        </head>
+        <body class="w-full h-full bg-[#86efac]">
+          <Navbar />
+          <div class="px-4 py-8 mx-auto">
+            <div class="pt-16 mx-auto flex flex-col items-center justify-center">
+              <h1 class="text-4xl font-bold">Welcome to Stock Tracker!</h1>
 
-  // Filter out unnecessary fields and objects
-  const filterOpenPositions = (data: any[]) =>
-    data.filter(
-      (position) =>
-        position.__EMPTY_1 && position.__EMPTY_2 && position.__EMPTY_3
-    );
+              <div class="pt-8 w-full max-w-4xl">
+                <table class="min-w-full bg-white shadow-lg rounded-lg overflow-hidden">
+                  <thead class="bg-gray-800 text-white">
+                    <tr>
+                      <th class="px-4 py-2">Symbol</th>
+                      <th class="px-4 py-2">Time</th>
+                      <th class="px-4 py-2">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stocks.map((stock, index) => (
+                      <tr key={index} class="hover:bg-gray-100">
+                        <td class="border px-4 py-2">{stock.symbol}</td>
+                        <td class="border px-4 py-2">{stock.time}</td>
+                        <td class="border px-4 py-2">{stock.price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-  const filteredOpenPositions = filterOpenPositions(xlsxData.openPositionsData);
-  const filteredOpenPositionsEu = filterOpenPositions(
-    xlsxDataEu.openPositionsData
-  );
-
-  return (
-    <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Stock Data</title>
-        <link href="/output.css" rel="stylesheet" />
-      </head>
-      <body class="w-full h-full bg-[#86efac]">
-        <div class="px-4 py-8 mx-auto">
-          <Navbar balance={sum} />
-          <div class="pt-16 mx-auto flex flex-col items-center justify-center">
-            <h1 class="text-4xl font-bold">Welcome to Stock Tracker!</h1>
-            <div class="pt-8">
-              <Table openPositions={filteredOpenPositions} />
-              <Table openPositions={filteredOpenPositionsEu} />
-            </div>
-            <div class="pt-8">
-              <StockTable stocks={stocks} />
-            </div>
-            <div class="pt-8">
-              <h2 class="text-2xl font-bold">Profits Chart</h2>
-              {/* <DatePickerDemo /> */}
-              {/* <Button /> */}
-              <Button variant="rainbow">Rainbow</Button>
-              <Input type="text" />
+              <div class="pt-8">
+                <h2 class="text-2xl font-bold">Actions</h2>
+                <div class="flex gap-4 mt-4">
+                  <Button variant="rainbow">Refresh</Button>
+                  <Input type="text" placeholder="Search stocks..." />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </body>
-    </html>
-  );
+        </body>
+      </html>
+    );
+  } catch (error) {
+    console.error("Error fetching stocks:", error);
+    return <div>Error loading stocks data</div>;
+  }
 };

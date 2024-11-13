@@ -1,3 +1,4 @@
+// main.go
 package main
 
 import (
@@ -5,61 +6,95 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
+
+	"github.com/xuri/excelize/v2"
 )
 
-type Book struct {
-    ID     string  `json:"id"`
-    Title  string  `json:"title"`
-    Author string  `json:"author"`
-    Price  float64 `json:"price"`
+type Stock struct {
+    Symbol string `json:"symbol"`
+    Time   string `json:"time"`
+    Price  string `json:"price"`
 }
 
-var books = []Book{
-    {ID: "1", Title: "The Go Programming Language", Author: "Alan A. A. Donovan", Price: 29.99},
-    {ID: "2", Title: "Clean Code", Author: "Robert C. Martin", Price: 39.99},
+func parseXLSX(filepath string) ([]Stock, error) {
+    f, err := excelize.OpenFile(filepath)
+    if err != nil {
+        return nil, fmt.Errorf("failed to open file %s: %v", filepath, err)
+    }
+    defer f.Close()
+
+    // Get the sheet name for the 4th sheet (index 3)
+    sheetName := f.GetSheetName(3)
+    if sheetName == "" {
+        return nil, fmt.Errorf("no sheet found at index 3")
+    }
+
+    rows, err := f.GetRows(sheetName)
+    if err != nil {
+        return nil, fmt.Errorf("failed to read rows: %v", err)
+    }
+
+    if len(rows) < 6 {
+        return nil, fmt.Errorf("file contains no data rows")
+    }
+
+    var stocks []Stock
+    for i, row := range rows[1:] { // Skip the first 5 rows
+        if len(row) < 6 {
+            log.Printf("Warning: row %d has insufficient columns, skipping", i+6)
+            continue
+        }
+
+        symbol := row[5]
+        time := row[3]
+        price := row[4]
+
+        // Validate that symbol, time, and price are not empty
+        if symbol == "" || time == "" || price == "" {
+            log.Printf("Warning: row %d has empty fields, skipping", i+6)
+            continue
+        }
+
+        stock := Stock{
+            Symbol: symbol,
+            Time:   time,
+            Price:  price,
+        }
+        stocks = append(stocks, stock)
+    }
+
+    if len(stocks) == 0 {
+        return nil, fmt.Errorf("no valid stock data found in file")
+    }
+
+    return stocks, nil
 }
 
-func getBooks(w http.ResponseWriter) {
+func getStocks(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(books)
-}
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 
-func getBook(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    // Extract ID from path
-    path := strings.TrimSpace(r.URL.Path)
-    pathParts := strings.Split(path, "/")
-    if len(pathParts) != 3 {
-        http.Error(w, "Invalid path", http.StatusBadRequest)
+    stocks, err := parseXLSX("./eu.xlsx")
+    if err != nil {
+        log.Printf("Error parsing XLSX: %v", err)
+        http.Error(w, fmt.Sprintf("Failed to parse XLSX file: %v", err), http.StatusInternalServerError)
         return
     }
 
-    id := pathParts[2]
-    for _, book := range books {
-        if book.ID == id {
-            json.NewEncoder(w).Encode(book)
-            return
-        }
+    // Skip the first entry
+    if len(stocks) > 0 {
+        stocks = stocks[5:]
     }
-    w.WriteHeader(http.StatusNotFound)
-    json.NewEncoder(w).Encode(map[string]string{"error": "Book not found"})
-}
 
-func handleRequests(w http.ResponseWriter, r *http.Request) {
-    switch {
-    case r.Method == "GET" && r.URL.Path == "/books":
-        getBooks(w)
-    case r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/book/"):
-        getBook(w, r)
-    default:
-        http.Error(w, "404 not found", http.StatusNotFound)
+    if err := json.NewEncoder(w).Encode(stocks); err != nil {
+        log.Printf("Error encoding response: %v", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
     }
 }
 
 func main() {
-    http.HandleFunc("/", handleRequests)
+    http.HandleFunc("/api/stocks", getStocks)
 
-    fmt.Println("Server is running on port 8080")
+    fmt.Println("Server is running on http://localhost:8080")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
