@@ -36,6 +36,6 @@ async function router(req: Request): Promise<Response> {
   return await handleRequest();
 }
 
-console.log(`Server running on http://localhost:800`);
+console.log(`Server running on http://localhost:8000`);
 
 Deno.serve(router);
