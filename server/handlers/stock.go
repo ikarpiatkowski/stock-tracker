@@ -58,13 +58,22 @@ func HandleStockPrice(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             continue
         }
-        stockData := models.StockData{
-            Date:          records[i][0],
-            Price:         utils.RoundToTwo(price),
-            Change:        0.0,
-            ChangePercent: 0.0,
-            IsIncrease:    false,
-        }
+        volume, err := strconv.ParseFloat(records[i][5], 64)
+    if err != nil {
+        // Set default volume or log error
+        volume = 0
+        log.Printf("Failed to parse volume for date %s: %v", records[i][0], err)
+    }
+
+    stockData := models.StockData{
+        Date:          records[i][0],
+        Price:         utils.RoundToTwo(price),
+        Volume:        int(volume),          // Add volume
+        Change:        0.0,
+        ChangePercent: 0.0,
+        IsIncrease:    false,
+    }
+    
         if i > 0 {
             nextPrice, err := strconv.ParseFloat(records[i-1][4], 64)
             if err == nil {

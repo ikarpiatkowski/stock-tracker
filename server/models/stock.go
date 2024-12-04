@@ -3,6 +3,7 @@ package models
 type StockData struct {
     Date          string  `json:"date"`
     Price         float64 `json:"price"`
+    Volume        int     `json:"volume"`
     Change        float64 `json:"change"`
     ChangePercent float64 `json:"changePercent"`
     IsIncrease    bool    `json:"isIncrease"`
