@@ -68,7 +68,7 @@ func HandleStockPrice(w http.ResponseWriter, r *http.Request) {
     stockData := models.StockData{
         Date:          records[i][0],
         Price:         utils.RoundToTwo(price),
-        Volume:        int(volume),          // Add volume
+        Volume:        int(volume),
         Change:        0.0,
         ChangePercent: 0.0,
         IsIncrease:    false,

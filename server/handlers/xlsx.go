@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"server/db"
 	"server/models"
 
 	"github.com/xuri/excelize/v2"
@@ -24,6 +25,12 @@ func HandleStocksXLSX(w http.ResponseWriter, r *http.Request) {
 
     if len(stocks) > 0 {
         stocks = stocks[5:]
+        // Save to database
+        if err := db.SaveStocks(r.Context(), stocks); err != nil {
+            log.Printf("Error saving stocks: %v", err)
+            http.Error(w, "Failed to save stocks", http.StatusInternalServerError)
+            return
+        }
     }
 
     if err := json.NewEncoder(w).Encode(stocks); err != nil {
