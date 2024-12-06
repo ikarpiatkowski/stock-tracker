@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -43,14 +42,14 @@ func createTables() error {
     return err
 }
 
+// server/db/db.go - update batch processing
+
 func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     tx, err := Pool.Begin(ctx)
     if err != nil {
         return fmt.Errorf("begin transaction: %v", err)
     }
     defer tx.Rollback(ctx)
-
-    batch := &pgx.Batch{}
 
     for _, stock := range stocks {
         timestamp, err := stock.ParseTime()
@@ -63,7 +62,7 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
             return fmt.Errorf("failed to parse price %s: %v", stock.Price, err)
         }
 
-        batch.Queue(
+        _, err = tx.Exec(ctx,
             `INSERT INTO stocks (ticker, date, price, volume, name, currency) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
             stock.Symbol,
@@ -73,18 +72,11 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
             "",
             "PLN",
         )
+        if err != nil {
+            return fmt.Errorf("failed to insert stock: %v", err)
+        }
     }
 
-    // Send batch and get results
-    br := tx.SendBatch(ctx, batch)
-    defer br.Close()
-
-    // Process all results at once
-    if err := br.Close(); err != nil {
-        return fmt.Errorf("failed to execute batch: %v", err)
-    }
-
-    // Commit transaction after batch is closed
     if err := tx.Commit(ctx); err != nil {
         return fmt.Errorf("failed to commit transaction: %v", err)
     }
@@ -92,9 +84,14 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     return nil
 }
 
+// In server/db/db.go
+
 func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     rows, err := Pool.Query(ctx, `
-        SELECT ticker, date, price    -- Changed 'time' to 'date', 'symbol' to 'ticker'
+        SELECT 
+            ticker,
+            TO_CHAR(date, 'YYYY-MM-DD HH24:MI:SS') as formatted_date,
+            price    
         FROM stocks 
         ORDER BY date DESC`)
     if err != nil {
@@ -106,7 +103,7 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     for rows.Next() {
         var s models.Stock
         if err := rows.Scan(&s.Symbol, &s.Time, &s.Price); err != nil {
-            return nil, err
+            return nil, fmt.Errorf("scan error: %v", err)
         }
         stocks = append(stocks, s)
     }
@@ -114,16 +111,39 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     return stocks, rows.Err()
 }
 
-// Add this helper function to extract price
+// In server/db/db.go
 func extractPrice(priceStr string) (float64, error) {
-    // Split by @ and take the last part
-    parts := strings.Split(priceStr, "@")
-    if len(parts) > 1 {
-        // Take the last part and trim spaces
-        priceStr = strings.TrimSpace(parts[len(parts)-1])
-    }
+    // Split into fields and look for numeric value
+    fields := strings.Fields(priceStr)
     
-    // Try to parse the cleaned price string
-    return strconv.ParseFloat(priceStr, 64)
-}
+    for _, field := range fields {
+        // Clean up the field
+        field = strings.TrimSuffix(field, "/")
+        field = strings.TrimSuffix(field, "SHR")
+        field = strings.TrimPrefix(field, "PLN")
+        field = strings.Trim(field, " ")
+        
+        // Try to parse any number we find
+        if price, err := strconv.ParseFloat(field, 64); err == nil {
+            return price, nil
+        }
+    }
 
+    // If no number found in original string, try last resort cleanup
+    cleaned := strings.Map(func(r rune) rune {
+        switch {
+        case r >= '0' && r <= '9':
+            return r
+        case r == '.':
+            return r
+        default:
+            return -1
+        }
+    }, priceStr)
+    
+    if cleaned != "" {
+        return strconv.ParseFloat(cleaned, 64)
+    }
+
+    return 0, fmt.Errorf("no valid price found in string: %s", priceStr)
+}

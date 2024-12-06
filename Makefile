@@ -1,5 +1,5 @@
 client:
-	cd client && deno task dev
+	cd client && pnpm run dev
 server:
 	cd server && go run main.go
 dev:

@@ -15,27 +15,43 @@ import (
 func HandleStocksXLSX(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
-    stocks, err := ParseXLSX("./eu.xlsx")
-    if err != nil {
-        log.Printf("Error parsing XLSX: %v", err)
-        http.Error(w, fmt.Sprintf("Failed to parse XLSX file: %v", err), http.StatusInternalServerError)
-        return
-    }
+    switch r.Method {
+    case "POST":
+        // Parse the xlsx file
+        stocks, err := ParseXLSX("./plike.xlsx") 
+        if err != nil {
+            log.Printf("Error parsing XLSX: %v", err)
+            http.Error(w, "Failed to parse XLSX file", http.StatusInternalServerError)
+            return
+        }
 
-    if len(stocks) > 0 {
-        stocks = stocks[5:]
         // Save to database
         if err := db.SaveStocks(r.Context(), stocks); err != nil {
             log.Printf("Error saving stocks: %v", err)
             http.Error(w, "Failed to save stocks", http.StatusInternalServerError)
             return
         }
-    }
 
-    if err := json.NewEncoder(w).Encode(stocks); err != nil {
-        log.Printf("Error encoding response: %v", err)
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        w.WriteHeader(http.StatusCreated)
+        json.NewEncoder(w).Encode(map[string]string{
+            "message": "Stocks saved successfully",
+        })
+
+    case "GET":
+        // Retrieve stocks from database
+        stocks, err := db.GetAllStocks(r.Context())
+        if err != nil {
+            log.Printf("Error retrieving stocks: %v", err)
+            http.Error(w, "Failed to retrieve stocks", http.StatusInternalServerError)
+            return
+        }
+
+        json.NewEncoder(w).Encode(stocks)
+
+    default:
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
     }
 }
 
