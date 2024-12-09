@@ -3,10 +3,12 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
+	"regexp"
 	"server/models"
 	"strconv"
-	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,8 +33,8 @@ func createTables() error {
     CREATE TABLE IF NOT EXISTS stocks (
         id SERIAL PRIMARY KEY,
         ticker VARCHAR(10) NOT NULL,
-        date TIMESTAMPTZ NOT NULL,      -- Changed from 'time' to 'date'
-        price NUMERIC(10, 2) NOT NULL,
+        date TIMESTAMPTZ NOT NULL,
+        price TEXT NOT NULL,
         volume BIGINT DEFAULT 0,
         name TEXT DEFAULT '',
         currency VARCHAR(3) DEFAULT 'PLN'
@@ -42,8 +44,7 @@ func createTables() error {
     return err
 }
 
-// server/db/db.go - update batch processing
-
+// In db.go
 func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     tx, err := Pool.Begin(ctx)
     if err != nil {
@@ -51,30 +52,33 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     }
     defer tx.Rollback(ctx)
 
+    batch := &pgx.Batch{}
+
     for _, stock := range stocks {
-        timestamp, err := stock.ParseTime()
+        // Parse the time string into time.Time
+        parsedTime, err := models.ParseTime(stock.Time)
         if err != nil {
-            return fmt.Errorf("failed to parse time %s: %v", stock.Time, err)
+            log.Printf("Error parsing time for stock %s: %v", stock.Symbol, err)
+            continue // Skip this stock entry
         }
 
-        price, err := extractPrice(stock.Price)
-        if err != nil {
-            return fmt.Errorf("failed to parse price %s: %v", stock.Price, err)
-        }
-
-        _, err = tx.Exec(ctx,
+        batch.Queue(
             `INSERT INTO stocks (ticker, date, price, volume, name, currency) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
             stock.Symbol,
-            timestamp,
-            price,
+            parsedTime, // Pass the parsed time
+            stock.Price,
             0,
             "",
             "PLN",
         )
-        if err != nil {
-            return fmt.Errorf("failed to insert stock: %v", err)
-        }
+    }
+
+    br := tx.SendBatch(ctx, batch)
+    defer br.Close()
+
+    if err := br.Close(); err != nil {
+        return fmt.Errorf("failed to execute batch: %v", err)
     }
 
     if err := tx.Commit(ctx); err != nil {
@@ -86,9 +90,12 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
 
 // In server/db/db.go
 
+// client/src/db/db.go
+
 func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     rows, err := Pool.Query(ctx, `
         SELECT 
+            id,
             ticker,
             TO_CHAR(date, 'YYYY-MM-DD HH24:MI:SS') as formatted_date,
             price    
@@ -102,7 +109,7 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     var stocks []models.Stock
     for rows.Next() {
         var s models.Stock
-        if err := rows.Scan(&s.Symbol, &s.Time, &s.Price); err != nil {
+        if err := rows.Scan(&s.ID, &s.Symbol, &s.Time, &s.Price); err != nil {
             return nil, fmt.Errorf("scan error: %v", err)
         }
         stocks = append(stocks, s)
@@ -111,38 +118,16 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     return stocks, rows.Err()
 }
 
-// In server/db/db.go
-func extractPrice(priceStr string) (float64, error) {
-    // Split into fields and look for numeric value
-    fields := strings.Fields(priceStr)
-    
-    for _, field := range fields {
-        // Clean up the field
-        field = strings.TrimSuffix(field, "/")
-        field = strings.TrimSuffix(field, "SHR")
-        field = strings.TrimPrefix(field, "PLN")
-        field = strings.Trim(field, " ")
-        
-        // Try to parse any number we find
-        if price, err := strconv.ParseFloat(field, 64); err == nil {
-            return price, nil
-        }
-    }
 
-    // If no number found in original string, try last resort cleanup
-    cleaned := strings.Map(func(r rune) rune {
-        switch {
-        case r >= '0' && r <= '9':
-            return r
-        case r == '.':
-            return r
-        default:
-            return -1
-        }
-    }, priceStr)
-    
-    if cleaned != "" {
-        return strconv.ParseFloat(cleaned, 64)
+func extractPrice(priceStr string) (float64, error) {
+    // Use regex to find all floating-point numbers in the string
+    re := regexp.MustCompile(`\d+\.\d+`)
+    matches := re.FindAllString(priceStr, -1)
+
+    if len(matches) > 0 {
+        // Assume the last number is the price
+        priceStr = matches[len(matches)-1]
+        return strconv.ParseFloat(priceStr, 64)
     }
 
     return 0, fmt.Errorf("no valid price found in string: %s", priceStr)
