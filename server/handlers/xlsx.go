@@ -98,49 +98,31 @@ func ParseXLSXFile(f *excelize.File) ([]models.Stock, error) {
     if sheetName == "" {
         return nil, fmt.Errorf("no sheet found at index 3")
     }
-
     rows, err := f.GetRows(sheetName)
     if err != nil {
         return nil, fmt.Errorf("failed to read rows: %v", err)
     }
-
     if len(rows) < 12 {
         return nil, fmt.Errorf("file contains no data rows")
     }
-
     var stocks []models.Stock
     for i, row := range rows[11:] {
         if len(row) < 6 {
             log.Printf("Warning: row %d has insufficient columns, skipping", i+12)
             continue
         }
-
         symbol := row[5]
         time := row[3]
         priceStr := row[4]
-
-        // Skip records with "WHT" or "SHT" in the price
-        if strings.Contains(strings.ToUpper(priceStr), "WHT") || strings.Contains(strings.ToUpper(priceStr), "SHT") {
-            log.Printf("Skipping row %d with price containing 'WHT' or 'SHT'", i+12)
+        // Only include records with "OPEN BUY"
+        if !strings.Contains(strings.ToUpper(priceStr), "OPEN BUY") {
             continue
         }
-
-
-        if symbol == "" || time == "" {
-            log.Printf("Warning: row %d has empty symbol or time, skipping", i+12)
-            continue
-        }
-
         stocks = append(stocks, models.Stock{
             Symbol: symbol,
             Time:   time,
-            Price:  priceStr,
+            Price:  priceStr, // Treat price as string
         })
     }
-
-    if len(stocks) == 0 {
-        return nil, fmt.Errorf("no valid stock data found in file")
-    }
-
     return stocks, nil
 }

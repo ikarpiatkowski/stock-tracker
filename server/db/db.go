@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"regexp"
 	"server/models"
-	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -44,7 +42,6 @@ func createTables() error {
     return err
 }
 
-// In db.go
 func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     tx, err := Pool.Begin(ctx)
     if err != nil {
@@ -53,21 +50,22 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     defer tx.Rollback(ctx)
 
     batch := &pgx.Batch{}
-
     for _, stock := range stocks {
-        // Parse the time string into time.Time
+        if stock.Time == "" {
+            log.Printf("Warning: stock %s has empty time, skipping", stock.Symbol)
+            continue // Skip this stock entry
+        }
         parsedTime, err := models.ParseTime(stock.Time)
         if err != nil {
             log.Printf("Error parsing time for stock %s: %v", stock.Symbol, err)
             continue // Skip this stock entry
         }
-
         batch.Queue(
             `INSERT INTO stocks (ticker, date, price, volume, name, currency) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
             stock.Symbol,
-            parsedTime, // Pass the parsed time
-            stock.Price,
+            parsedTime,
+            stock.Price, // Treat price as string
             0,
             "",
             "PLN",
@@ -76,16 +74,11 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
 
     br := tx.SendBatch(ctx, batch)
     defer br.Close()
-
     if err := br.Close(); err != nil {
         return fmt.Errorf("failed to execute batch: %v", err)
     }
 
-    if err := tx.Commit(ctx); err != nil {
-        return fmt.Errorf("failed to commit transaction: %v", err)
-    }
-
-    return nil
+    return tx.Commit(ctx)
 }
 
 // In server/db/db.go
@@ -116,19 +109,4 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     }
 
     return stocks, rows.Err()
-}
-
-
-func extractPrice(priceStr string) (float64, error) {
-    // Use regex to find all floating-point numbers in the string
-    re := regexp.MustCompile(`\d+\.\d+`)
-    matches := re.FindAllString(priceStr, -1)
-
-    if len(matches) > 0 {
-        // Assume the last number is the price
-        priceStr = matches[len(matches)-1]
-        return strconv.ParseFloat(priceStr, 64)
-    }
-
-    return 0, fmt.Errorf("no valid price found in string: %s", priceStr)
 }
