@@ -1,6 +1,3 @@
 .vscode
-deno.lock
-client/src/output.css
 .env
 node_modules
-server/eu.xlsx

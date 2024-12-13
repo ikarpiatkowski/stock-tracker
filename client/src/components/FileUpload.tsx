@@ -1,8 +1,7 @@
 // In client/src/components/FileUpload.tsx
 "use client";
-
 import { useState } from "react";
-// import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -46,9 +45,9 @@ export const FileUpload = () => {
         onChange={(e) => setFile(e.target.files?.[0] || null)}
         className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
       />
-      <button type="submit" disabled={!file || loading}>
+      <Button type="submit" disabled={!file || loading}>
         {loading ? "Uploading..." : "Upload"}
-      </button>
+      </Button>
       {error && <p className="text-red-500 text-sm">{error}</p>}
     </form>
   );
