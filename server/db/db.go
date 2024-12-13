@@ -30,13 +30,12 @@ func createTables() error {
     query := `
     CREATE TABLE IF NOT EXISTS stocks (
         id SERIAL PRIMARY KEY,
-        ticker VARCHAR(10) NOT NULL,
+        ticker VARCHAR(10) NOT NULL UNIQUE,
         date TIMESTAMPTZ NOT NULL,
-        price TEXT NOT NULL,
-        volume BIGINT DEFAULT 0,
-        name TEXT DEFAULT '',
+        price DECIMAL(10,4) NOT NULL,
+        shares DECIMAL(10,4) NOT NULL DEFAULT 0,
         currency VARCHAR(3) DEFAULT 'PLN'
-    )`
+    );`
 
     _, err := Pool.Exec(context.Background(), query)
     return err
@@ -51,29 +50,28 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
 
     batch := &pgx.Batch{}
     for _, stock := range stocks {
-        if stock.Time == "" {
-            log.Printf("Warning: stock %s has empty time, skipping", stock.Symbol)
-            continue // Skip this stock entry
-        }
         parsedTime, err := models.ParseTime(stock.Time)
         if err != nil {
             log.Printf("Error parsing time for stock %s: %v", stock.Symbol, err)
-            continue // Skip this stock entry
+            continue
         }
-        batch.Queue(
-            `INSERT INTO stocks (ticker, date, price, volume, name, currency) 
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            stock.Symbol,
-            parsedTime,
-            stock.Price, // Treat price as string
-            0,
-            "",
-            "PLN",
-        )
+
+        batch.Queue(`
+            INSERT INTO stocks (ticker, date, price, shares, currency)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (ticker) DO UPDATE 
+            SET 
+                price = (stocks.price * stocks.shares + EXCLUDED.price * EXCLUDED.shares) / 
+                       NULLIF(stocks.shares + EXCLUDED.shares, 0),
+                shares = stocks.shares + EXCLUDED.shares,
+                date = GREATEST(stocks.date, EXCLUDED.date)
+            WHERE stocks.ticker = EXCLUDED.ticker
+        `, stock.Symbol, parsedTime, stock.Price, stock.Shares, "PLN")
     }
 
     br := tx.SendBatch(ctx, batch)
     defer br.Close()
+
     if err := br.Close(); err != nil {
         return fmt.Errorf("failed to execute batch: %v", err)
     }
@@ -81,17 +79,14 @@ func SaveStocks(ctx context.Context, stocks []models.Stock) error {
     return tx.Commit(ctx)
 }
 
-// In server/db/db.go
-
-// client/src/db/db.go
-
 func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     rows, err := Pool.Query(ctx, `
         SELECT 
             id,
             ticker,
             TO_CHAR(date, 'YYYY-MM-DD HH24:MI:SS') as formatted_date,
-            price    
+            price,
+            shares
         FROM stocks 
         ORDER BY date DESC`)
     if err != nil {
@@ -102,7 +97,7 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     var stocks []models.Stock
     for rows.Next() {
         var s models.Stock
-        if err := rows.Scan(&s.ID, &s.Symbol, &s.Time, &s.Price); err != nil {
+        if err := rows.Scan(&s.ID, &s.Symbol, &s.Time, &s.Price, &s.Shares); err != nil {
             return nil, fmt.Errorf("scan error: %v", err)
         }
         stocks = append(stocks, s)

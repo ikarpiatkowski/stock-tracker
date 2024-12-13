@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"server/db"
 	"server/models"
+	"server/utils"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -98,31 +100,68 @@ func ParseXLSXFile(f *excelize.File) ([]models.Stock, error) {
     if sheetName == "" {
         return nil, fmt.Errorf("no sheet found at index 3")
     }
+    
     rows, err := f.GetRows(sheetName)
     if err != nil {
         return nil, fmt.Errorf("failed to read rows: %v", err)
     }
+    
     if len(rows) < 12 {
         return nil, fmt.Errorf("file contains no data rows")
     }
-    var stocks []models.Stock
+
+    stockMap := make(map[string]*models.Stock)
+    
     for i, row := range rows[11:] {
         if len(row) < 6 {
-            log.Printf("Warning: row %d has insufficient columns, skipping", i+12)
             continue
         }
+
         symbol := row[5]
         time := row[3]
         priceStr := row[4]
-        // Only include records with "OPEN BUY"
+
         if !strings.Contains(strings.ToUpper(priceStr), "OPEN BUY") {
             continue
         }
-        stocks = append(stocks, models.Stock{
-            Symbol: symbol,
-            Time:   time,
-            Price:  priceStr, // Treat price as string
-        })
+
+        parts := strings.Split(strings.TrimPrefix(priceStr, "OPEN BUY "), " @ ")
+        if len(parts) != 2 {
+            log.Printf("Warning: invalid price format in row %d", i+12)
+            continue
+        }
+
+        shares, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+        if err != nil {
+            log.Printf("Warning: invalid shares number in row %d: %v", i+12, err)
+            continue
+        }
+
+        price, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+        if err != nil {
+            log.Printf("Warning: invalid price in row %d: %v", i+12, err)
+            continue
+        }
+
+        if existing, exists := stockMap[symbol]; exists {
+            totalShares := existing.Shares + shares
+            existing.Price = ((existing.Price * existing.Shares) + 
+                            (price * shares)) / totalShares
+            existing.Shares = totalShares
+        } else {
+            stockMap[symbol] = &models.Stock{
+                Symbol: symbol,
+                Time:   time,
+                Price:  utils.RoundToTwo(price),
+                Shares: shares,
+            }
+        }
     }
+
+    stocks := make([]models.Stock, 0, len(stockMap))
+    for _, stock := range stockMap {
+        stocks = append(stocks, *stock)
+    }
+    
     return stocks, nil
 }

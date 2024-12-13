@@ -5,22 +5,20 @@ import "time"
 type StockData struct {
     Date          string  `json:"date"`
     Price         float64 `json:"price"`
-    Volume        int     `json:"volume"`
+    Volume        float64 `json:"volume"`
     Change        float64 `json:"change"`
     ChangePercent float64 `json:"changePercent"`
     IsIncrease    bool    `json:"isIncrease"`
 }
 
-// client/src/models/stock.go
-
 type Stock struct {
-    ID     int    `json:"id"`
-    Symbol string `json:"symbol"`
-    Time   string `json:"time"`
-    Price  string `json:"price"`
+    ID     int     `json:"id"`
+    Symbol string  `json:"symbol"`
+    Time   string  `json:"time"`
+    Price  float64 `json:"price"`
+    Shares float64 `json:"shares"`
 }
 
-// In models/stock.go
 func ParseTime(timeStr string) (time.Time, error) {
     formats := []string{
         "02/01/2006 15:04:05", // DD/MM/YYYY
