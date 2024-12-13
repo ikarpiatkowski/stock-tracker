@@ -58,7 +58,7 @@ export default function RootLayout({
           <SidebarProvider>
             <Navbar />
             <AppSidebar />
-            <main className="flex w-full justify-center items-center">
+            <main className="flex w-full justify-center items-center mt-16 p-4">
               {children}
             </main>
           </SidebarProvider>

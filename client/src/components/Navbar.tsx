@@ -10,8 +10,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-// import { ThemeToggle } from "./ThemeToggle";
 import Link from "next/link";
+import { ModeToggle } from "@/components/ModeToggle";
 
 export const Navbar = () => {
   const { open } = useSidebar();
@@ -51,7 +51,7 @@ export const Navbar = () => {
         <div className="flex justify-center flex-1">
           <p className="font-bold">Profits: 617.98 PLN</p>
         </div>
-        <div>{/* <ThemeToggle /> */}X</div>
+        <ModeToggle />
       </div>
     </nav>
   );
