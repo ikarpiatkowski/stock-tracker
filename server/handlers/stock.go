@@ -12,6 +12,52 @@ import (
 	"strconv"
 )
 
+func HandleCurrentPrice(w http.ResponseWriter, r *http.Request) {
+    symbol := r.URL.Query().Get("symbol")
+    if symbol == "" {
+        http.Error(w, "Symbol is required", http.StatusBadRequest)
+        return
+    }
+
+    resp, err := http.Get(fmt.Sprintf("https://stooq.pl/q/l/?s=%s", symbol))
+    if err != nil {
+        log.Printf("Failed to fetch current price: %v", err)
+        http.Error(w, "Failed to fetch current price", http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    reader := csv.NewReader(resp.Body)
+    if err != nil {
+        log.Printf("Failed to read header: %v", err)
+        http.Error(w, "Failed to read data", http.StatusInternalServerError)
+        return
+    }
+
+    record, err := reader.Read() // Read single row
+    if err != nil {
+        log.Printf("Failed to read price data: %v", err)
+        http.Error(w, "Failed to read price data", http.StatusInternalServerError)
+        return
+    }
+
+    price, err := strconv.ParseFloat(record[6], 64) // Price is in 7th column
+    if err != nil {
+        log.Printf("Failed to parse price: %v", err)
+        http.Error(w, "Failed to parse price", http.StatusInternalServerError)
+        return
+    }
+
+    quote := models.StockQuote{
+        Symbol: symbol,
+        Price:  utils.RoundToTwo(price),
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    json.NewEncoder(w).Encode(quote)
+}
+
 func HandleStockPrice(w http.ResponseWriter, r *http.Request) {
     symbol := r.URL.Query().Get("symbol")
     if symbol == "" {

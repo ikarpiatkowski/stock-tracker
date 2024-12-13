@@ -19,6 +19,11 @@ type Stock struct {
     Shares float64 `json:"shares"`
 }
 
+type StockQuote struct {
+    Symbol  string  `json:"symbol"`
+    Price   float64 `json:"price"`
+}
+
 func ParseTime(timeStr string) (time.Time, error) {
     formats := []string{
         "02/01/2006 15:04:05", // DD/MM/YYYY

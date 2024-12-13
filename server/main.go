@@ -30,6 +30,8 @@ func main() {
 
     http.HandleFunc("/api/stock", handlers.HandleStockPrice)
     http.HandleFunc("/api/stocks", handlers.HandleStocksXLSX)
+    http.HandleFunc("/api/quote", handlers.HandleCurrentPrice) // Add new endpoint
+
 
     fmt.Println("Server running on :8080")
     log.Fatal(http.ListenAndServe(":8080", nil))
