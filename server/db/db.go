@@ -2,9 +2,11 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"server/models"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -104,4 +106,45 @@ func GetAllStocks(ctx context.Context) ([]models.Stock, error) {
     }
 
     return stocks, rows.Err()
+}
+
+var (
+    ErrUserNotFound = errors.New("user not found")
+    ErrDuplicateEmail = errors.New("email already exists")
+)
+
+
+func CreateUser(ctx context.Context, user *models.User) error {
+    query := `
+        INSERT INTO users (email, password)
+        VALUES ($1, $2)
+        RETURNING id, created_at, updated_at`
+
+    err := Pool.QueryRow(ctx, query, user.Email, user.Password).
+        Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+    if err != nil {
+        log.Printf("Database error creating user: %v", err)
+        if strings.Contains(err.Error(), "unique constraint") {
+            return ErrDuplicateEmail
+        }
+        return fmt.Errorf("failed to create user: %w", err)
+    }
+
+    return nil
+}
+
+func GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+    user := &models.User{}
+    query := `
+        SELECT id, email, password, created_at, updated_at
+        FROM users
+        WHERE email = $1`
+
+    err := Pool.QueryRow(ctx, query, email).
+        Scan(&user.ID, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+    if err != nil {
+        return nil, ErrUserNotFound
+    }
+
+    return user, nil
 }

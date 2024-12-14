@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 
+	"server/auth"
 	"server/handlers"
+	"server/middleware"
 
 	"server/db"
 
@@ -28,9 +30,18 @@ func main() {
     }
     defer db.Pool.Close()
 
-    http.HandleFunc("/api/stock", handlers.HandleStockPrice)
-    http.HandleFunc("/api/stocks", handlers.HandleStocksXLSX)
-    http.HandleFunc("/api/quote", handlers.HandleCurrentPrice) // Add new endpoint
+    if err := auth.InitJWT(); err != nil {
+        log.Fatalf("Failed to initialize JWT: %v", err)
+    }
+
+    // Public endpoints
+    http.HandleFunc("/api/register", handlers.HandleRegister)
+    http.HandleFunc("/api/login", handlers.HandleLogin)
+
+    // Protected endpoints
+    http.HandleFunc("/api/stock", middleware.AuthMiddleware(handlers.HandleStockPrice))
+    http.HandleFunc("/api/stocks", middleware.AuthMiddleware(handlers.HandleStocksXLSX))
+    http.HandleFunc("/api/quote", middleware.AuthMiddleware(handlers.HandleCurrentPrice))
 
 
     fmt.Println("Server running on :8080")
