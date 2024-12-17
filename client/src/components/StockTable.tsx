@@ -1,3 +1,4 @@
+import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 
 interface Stock {
@@ -22,9 +23,10 @@ interface StockWithReturns extends Stock {
   isEuro?: boolean;
 }
 
-const EUR_TO_PLN = 4.32;
+const EUR_TO_PLN = 0.23;
 
 export function StocksTable() {
+  const { token } = useAuth();
   const [stocks, setStocks] = useState<StockWithReturns[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,12 @@ export function StocksTable() {
     try {
       const formattedSymbol = formatSymbol(symbol);
       const response = await fetch(
-        `http://localhost:8080/api/quote?symbol=${formattedSymbol}`
+        `http://localhost:8080/api/quote?symbol=${formattedSymbol}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!response.ok) throw new Error("Failed to fetch current price");
       const data: StockQuote = await response.json();
@@ -55,7 +62,13 @@ export function StocksTable() {
   };
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/stocks")
+    if (!token) return;
+
+    fetch("http://localhost:8080/api/stocks", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((response) => {
         if (!response.ok) throw new Error("Failed to fetch stocks");
         return response.json();

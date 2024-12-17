@@ -2,6 +2,7 @@
 
 import { useState, JSX } from "react";
 import { Search } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface StockData {
   date: string;
@@ -10,16 +11,6 @@ interface StockData {
   changePercent: string;
   isIncrease: boolean;
   volume: number;
-}
-
-async function getStockData(symbol: string): Promise<StockData[]> {
-  const response = await fetch(
-    `http://localhost:8080/api/stock?symbol=${symbol}`
-  );
-  if (!response.ok) {
-    throw new Error("Failed to fetch stock data");
-  }
-  return response.json();
 }
 
 function formatPriceWithColoredDiff(
@@ -61,10 +52,36 @@ function formatPriceWithColoredDiff(
 }
 
 export default function SearchStock() {
+  const { token } = useAuth();
   const [symbol, setSymbol] = useState("ELT");
   const [data, setData] = useState<StockData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function getStockData(symbol: string): Promise<StockData[]> {
+    try {
+      console.log("Fetching data for symbol:", symbol); // Debug log
+      const response = await fetch(
+        `http://localhost:8080/api/stock?symbol=${symbol}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Received data:", data); // Debug log
+      return data;
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      throw error;
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +90,15 @@ export default function SearchStock() {
 
     try {
       const stockData = await getStockData(symbol);
+      if (!Array.isArray(stockData)) {
+        throw new Error("Invalid data format received");
+      }
       setData(stockData);
-    } catch {
-      setError("Failed to fetch stock data");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch stock data"
+      );
+      console.error("Error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -105,19 +128,26 @@ export default function SearchStock() {
         </div>
       </form>
 
-      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {error && (
+        <div className="text-red-500 mb-4 p-2 border border-red-300 rounded">
+          {error}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="text-center py-4">Loading stock data...</div>
+      )}
 
       {data.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">
-            Stock Data for {symbol} (Last 6 Months)
-          </h2>
-          <table className="text-center border-collapse border border-gray-300">
-            <thead>
+        <div className="overflow-x-auto">
+          <h2 className="text-2xl font-bold mb-4">Stock Data for {symbol}</h2>
+          <table className="min-w-full text-center border-collapse border border-gray-300">
+            <thead className="bg-gray-100">
               <tr>
                 <th className="border p-2">Date</th>
                 <th className="border p-2">Price (PLN)</th>
                 <th className="border p-2">Change (PLN / %)</th>
+                <th className="border p-2">Volume</th>
               </tr>
             </thead>
             <tbody>
@@ -126,7 +156,7 @@ export default function SearchStock() {
                   index < data.length - 1 ? data[index + 1].price : null;
 
                 return (
-                  <tr key={index} className="hover:bg-gray-50">
+                  <tr key={item.date} className="hover:bg-gray-50">
                     <td className="border p-2">{item.date}</td>
                     <td className="border p-2">
                       {formatPriceWithColoredDiff(item.price, previousPrice)}
