@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 interface Stock {
@@ -37,13 +38,14 @@ export function StocksTable() {
       : symbol.toLowerCase();
   };
 
-  const calculateTotalValue = (
-    price: number,
-    shares: number,
-    isEuro: boolean
-  ): number => {
-    const priceInPLN = isEuro ? price * EUR_TO_PLN : price;
-    return priceInPLN * shares;
+  const getCompanyDomain = (symbol: string): string => {
+    const symbolMap: Record<string, string> = {
+      "XTB.PL": "xtb.pl",
+      "XDWT.DE": "dws.com",
+      "DTLA.UK": "blackrock.com",
+      "VUSA.UK": "vaneck.com",
+    };
+    return symbolMap[symbol.toUpperCase()] || "";
   };
 
   const fetchCurrentPrice = async (symbol: string): Promise<number> => {
@@ -165,7 +167,6 @@ export function StocksTable() {
       <table className="min-w-full border border-gray-200">
         <thead>
           <tr>
-            <th className="px-4 py-2 border-b">ID</th>
             <th className="px-4 py-2 border-b">Symbol</th>
             <th className="px-4 py-2 border-b">Date</th>
             <th className="px-4 py-2 border-b">Buy Price</th>
@@ -177,9 +178,21 @@ export function StocksTable() {
         </thead>
         <tbody>
           {stocks.map((stock) => (
-            <tr key={stock.id} className="hover:bg-gray-100">
-              <td className="px-4 py-2 border-b text-center">{stock.id}</td>
-              <td className="px-4 py-2 border-b text-center">{stock.symbol}</td>
+            <tr key={stock.id} className="hover:bg-gray-100 hover:text-black">
+              <td className="px-4 py-2 border-b text-center">
+                <div className="flex gap-2">
+                  <Image
+                    src={`https://img.logo.dev/${getCompanyDomain(
+                      stock.symbol
+                    )}?token=pk_QMo9Eq-YTcm8fEcZTeinfw&retina=true`}
+                    alt={`${stock.symbol} logo`}
+                    width={24}
+                    height={24}
+                    className="rounded-md"
+                  />
+                  {stock.symbol}
+                </div>
+              </td>{" "}
               <td className="px-4 py-2 border-b text-center">{stock.time}</td>
               <td className="px-4 py-2 border-b text-center">
                 {stock.price.toFixed(2)} {stock.isEuro ? "€" : "PLN"}
@@ -236,7 +249,7 @@ export function StocksTable() {
             </tr>
           ))}
           <tr className="font-bold bg-gray-50">
-            <td colSpan={7} className="px-4 py-2 border-b text-right">
+            <td colSpan={6} className="px-4 py-2 border-b text-right">
               Total Profit:
             </td>
             <td
