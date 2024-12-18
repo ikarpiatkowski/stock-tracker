@@ -34,17 +34,17 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "All",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },
     {
-      name: "Acme Corp.",
+      name: "PLN",
       logo: AudioWaveform,
       plan: "Startup",
     },
     {
-      name: "Evil Corp.",
+      name: "EUR",
       logo: Command,
       plan: "Free",
     },
@@ -57,12 +57,12 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Charts",
+          url: "/charts",
         },
         {
-          title: "Starred",
-          url: "#",
+          title: "Search",
+          url: "/search",
         },
         {
           title: "Settings",
