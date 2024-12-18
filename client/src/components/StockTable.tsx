@@ -23,7 +23,7 @@ interface StockWithReturns extends Stock {
   isEuro?: boolean;
 }
 
-const EUR_TO_PLN = 0.23;
+const EUR_TO_PLN = 4.32;
 
 export function StocksTable() {
   const { token } = useAuth();
@@ -37,8 +37,13 @@ export function StocksTable() {
       : symbol.toLowerCase();
   };
 
-  const calculatePriceInPLN = (price: number, symbol: string): number => {
-    return symbol.toLowerCase().endsWith(".pl") ? price : price * EUR_TO_PLN;
+  const calculateTotalValue = (
+    price: number,
+    shares: number,
+    isEuro: boolean
+  ): number => {
+    const priceInPLN = isEuro ? price * EUR_TO_PLN : price;
+    return priceInPLN * shares;
   };
 
   const fetchCurrentPrice = async (symbol: string): Promise<number> => {
@@ -54,7 +59,7 @@ export function StocksTable() {
       );
       if (!response.ok) throw new Error("Failed to fetch current price");
       const data: StockQuote = await response.json();
-      return calculatePriceInPLN(data.price, symbol);
+      return data.price;
     } catch (error) {
       console.error(`Error fetching price for ${symbol}:`, error);
       throw error;
@@ -85,12 +90,22 @@ export function StocksTable() {
           for (const stock of stocksWithReturns) {
             try {
               const currentPrice = await fetchCurrentPrice(stock.symbol);
-              const originalPriceInPLN = stock.isEuro
-                ? stock.price * EUR_TO_PLN
-                : stock.price;
-              const currentPriceInPLN = stock.isEuro
-                ? currentPrice * EUR_TO_PLN
-                : currentPrice;
+              // Total investment in original currency
+              const totalInvestment = stock.price * stock.shares;
+              // Current value in original currency
+              const currentTotalValue = currentPrice * stock.shares;
+
+              // Convert to PLN if needed
+              const totalInvestmentPLN = stock.isEuro
+                ? totalInvestment * EUR_TO_PLN
+                : totalInvestment;
+              const currentTotalValuePLN = stock.isEuro
+                ? currentTotalValue * EUR_TO_PLN
+                : currentTotalValue;
+
+              // Calculate profit and return percentage
+              const profit = currentTotalValuePLN - totalInvestmentPLN;
+              const returnPercentage = (profit / totalInvestmentPLN) * 100;
 
               setStocks(
                 (prev) =>
@@ -98,15 +113,9 @@ export function StocksTable() {
                     s.id === stock.id
                       ? {
                           ...s,
-                          currentPrice: stock.isEuro
-                            ? currentPrice
-                            : currentPriceInPLN,
-                          returnPercentage:
-                            ((currentPriceInPLN - originalPriceInPLN) /
-                              originalPriceInPLN) *
-                            100,
-                          profit:
-                            (currentPriceInPLN - originalPriceInPLN) * s.shares,
+                          currentPrice: currentPrice,
+                          returnPercentage: returnPercentage,
+                          profit: profit,
                           isLoading: false,
                         }
                       : s
