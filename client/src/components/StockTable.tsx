@@ -40,10 +40,41 @@ export function StocksTable() {
 
   const getCompanyDomain = (symbol: string): string => {
     const symbolMap: Record<string, string> = {
-      "XTB.PL": "xtb.pl",
-      "XDWT.DE": "dws.com",
+      "NEU.PL": "neuca.pl",
+      "PKO.PL": "pkobp.pl",
+      "PKN.PL": "orlen.pl",
+      "KTY.PL": "grupakety.com",
+      "KRU.PL": "kruk.eu",
+      "GPW.PL": "gpw.pl",
+      "APR.PL": "autopartner.com",
+      "DCR.PL": "decora.pl",
+      "AMB.PL": "ambra.com.pl",
+      "PCR.PL": "rokita.pl",
+      "AMC.PL": "amica.pl",
+      "ABS.PL": "assecobs.pl",
+      "ATC.PL": "arcticpaper.com",
+      "KGH.PL": "kghm.com",
+      "SNT.PL": "synektik.com.pl",
+      "DNP.PL": "grupadino.pl",
+      "ACP.PL": "asseco.com",
+      "COG.PL": "cognorholding.eu",
+      "MBR.PL": "mobruk.pl",
+      "ASE.PL": "see.asseco.com",
+      "TXT.PL": "text.pl",
+      "DIG.PL": "digitalnetwork.pl",
+      "ELT.PL": "elektrotim.pl",
+      "PZU.PL": "pzu.pl",
+      "WTN.PL": "wittchen.pl",
+      "ASB.PL": "asbis.pl",
+      "XTB.PL": "xtb.com",
+      "PCO.PL": "pepco.pl",
+      "XDEQ.DE": "dws.com",
+      "SXRV.DE": "ishares.com",
+      "SXR8.DE": "ishares.com",
       "DTLA.UK": "blackrock.com",
-      "VUSA.UK": "vaneck.com",
+      "XDWT.DE": "dws.com",
+      "IUSQ.DE": "ishares.com",
+      "VVSM.DE": "vaneck.com",
     };
     return symbolMap[symbol.toUpperCase()] || "";
   };
@@ -163,109 +194,94 @@ export function StocksTable() {
   );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 border-b">Symbol</th>
-            <th className="px-4 py-2 border-b">Date</th>
-            <th className="px-4 py-2 border-b">Buy Price</th>
-            <th className="px-4 py-2 border-b">Current Price</th>
-            <th className="px-4 py-2 border-b">Shares</th>
-            <th className="px-4 py-2 border-b">Return %</th>
-            <th className="px-4 py-2 border-b">Profit (PLN)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stocks.map((stock) => (
-            <tr key={stock.id} className="hover:bg-gray-100 hover:text-black">
-              <td className="px-4 py-2 border-b text-center">
-                <div className="flex gap-2">
-                  <Image
-                    src={`https://img.logo.dev/${getCompanyDomain(
-                      stock.symbol
-                    )}?token=pk_QMo9Eq-YTcm8fEcZTeinfw&retina=true`}
-                    alt={`${stock.symbol} logo`}
-                    width={24}
-                    height={24}
-                    className="rounded-md"
-                  />
-                  {stock.symbol}
-                </div>
-              </td>{" "}
-              <td className="px-4 py-2 border-b text-center">{stock.time}</td>
-              <td className="px-4 py-2 border-b text-center">
-                {stock.price.toFixed(2)} {stock.isEuro ? "€" : "PLN"}
-                {stock.isEuro && (
-                  <span className="text-gray-500 text-sm ml-1">
-                    ({(stock.price * EUR_TO_PLN).toFixed(2)} PLN)
-                  </span>
-                )}
-              </td>
-              <td className="px-4 py-2 border-b text-center">
-                {stock.isLoading ? (
-                  "Loading..."
-                ) : stock.error ? (
-                  <span className="text-red-500">{stock.error}</span>
-                ) : (
-                  <>
-                    {stock.currentPrice?.toFixed(2)}{" "}
-                    {stock.isEuro ? "€" : "PLN"}
-                    {stock.isEuro && (
-                      <span className="text-gray-500 text-sm ml-1">
-                        ({(stock.currentPrice! * EUR_TO_PLN).toFixed(2)} PLN)
-                      </span>
-                    )}
-                  </>
-                )}
-              </td>
-              <td className="px-4 py-2 border-b text-center">{stock.shares}</td>
-              <td
-                className={`px-4 py-2 border-b text-center ${
-                  stock.returnPercentage
-                    ? stock.returnPercentage > 0
-                      ? "text-green-600"
-                      : stock.returnPercentage < 0
-                      ? "text-red-600"
-                      : ""
-                    : ""
-                }`}
-              >
-                {stock.returnPercentage?.toFixed(2)}%
-              </td>
-              <td
-                className={`px-4 py-2 border-b text-center ${
-                  stock.profit
-                    ? stock.profit > 0
-                      ? "text-green-600"
-                      : stock.profit < 0
-                      ? "text-red-600"
-                      : ""
-                    : ""
-                }`}
-              >
-                {stock.profit?.toFixed(2)} PLN
-              </td>
-            </tr>
-          ))}
-          <tr className="font-bold bg-gray-50">
-            <td colSpan={6} className="px-4 py-2 border-b text-right">
-              Total Profit:
+    <table className="min-w-full border border-neutral-200 dark:border-neutral-800">
+      <thead>
+        <tr>
+          <th className="px-4 py-2 border-b">Symbol</th>
+          <th className="px-4 py-2 border-b">Buy Price</th>
+          <th className="px-4 py-2 border-b">Current Price</th>
+          <th className="px-4 py-2 border-b">Shares</th>
+          <th className="px-4 py-2 border-b">Profit (PLN)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {stocks.map((stock) => (
+          <tr
+            key={stock.id}
+            className="hover:bg-neutral-100 dark:hover:bg-neutral-900"
+          >
+            <td className="px-4 py-2 border-b text-center">
+              <div className="flex gap-2">
+                <Image
+                  src={`https://img.logo.dev/${getCompanyDomain(
+                    stock.symbol
+                  )}?token=pk_QMo9Eq-YTcm8fEcZTeinfw&retina=true`}
+                  alt={`${stock.symbol} logo`}
+                  width={24}
+                  height={24}
+                  className="rounded-md"
+                />
+                {stock.symbol}
+              </div>
             </td>
+            <td className="px-4 py-2 border-b text-center">
+              {stock.price.toFixed(2)} {stock.isEuro ? "€" : "PLN"}
+              {stock.isEuro && (
+                <span className="text-neutral-500 text-sm ml-1">
+                  ({(stock.price * EUR_TO_PLN).toFixed(2)} PLN)
+                </span>
+              )}
+            </td>
+            <td className="px-4 py-2 border-b text-center">
+              {stock.isLoading ? (
+                "Loading..."
+              ) : stock.error ? (
+                <span className="text-red-500">{stock.error}</span>
+              ) : (
+                <>
+                  {stock.currentPrice?.toFixed(2)} {stock.isEuro ? "€" : "PLN"}
+                  {stock.isEuro && (
+                    <span className="text-gray-500 text-sm ml-1">
+                      ({(stock.currentPrice! * EUR_TO_PLN).toFixed(2)} PLN)
+                    </span>
+                  )}
+                </>
+              )}
+            </td>
+            <td className="px-4 py-2 border-b text-center">{stock.shares}</td>
             <td
               className={`px-4 py-2 border-b text-center ${
-                totalProfit > 0
-                  ? "text-green-600"
-                  : totalProfit < 0
-                  ? "text-red-600"
+                stock.profit
+                  ? stock.profit > 0
+                    ? "text-green-600"
+                    : stock.profit < 0
+                    ? "text-red-600"
+                    : ""
                   : ""
               }`}
             >
-              {totalProfit.toFixed(2)} PLN
+              {stock.profit?.toFixed(2)} ({stock.returnPercentage?.toFixed(2)}
+              %)
             </td>
           </tr>
-        </tbody>
-      </table>
-    </div>
+        ))}
+        <tr className="font-bold">
+          <td colSpan={4} className="px-4 py-2 text-right">
+            Total Profit:
+          </td>
+          <td
+            className={`px-4 py-2 text-center ${
+              totalProfit > 0
+                ? "text-green-600"
+                : totalProfit < 0
+                ? "text-red-600"
+                : ""
+            }`}
+          >
+            {totalProfit.toFixed(2)} PLN
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }

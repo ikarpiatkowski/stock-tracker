@@ -2,15 +2,17 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 export const FileUpload = () => {
+  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file || !token) return;
 
     setLoading(true);
     setError(null);
@@ -21,8 +23,15 @@ export const FileUpload = () => {
     try {
       const response = await fetch("http://localhost:8080/api/stocks", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
+
+      if (response.status === 401) {
+        throw new Error("Unauthorized - Please login again");
+      }
 
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
